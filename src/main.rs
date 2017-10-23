@@ -26,9 +26,12 @@ fn main() {
         .collect();
 
     let mut result: Vec<u8> = Vec::with_capacity(
-        lines.len() * lines.len() * 5 * 2 * 2 // n^2 strings of 5*2 symbols (*2 why?!)
-        + lines.len()                         // \n
+        lines.len() * lines.len() * 5 * 2 // n^2 strings of 5*2 symbols
+      + lines.len() * lines.len()         // \n
     );
+
+    println!("{}", result.capacity());
+    println!("{}", result.len());
 
     for pref in lines.iter().map(|line| line.split_at(5).0) {
         for suf in lines.iter().map(|line| line.split_at(6).1) {
@@ -38,5 +41,8 @@ fn main() {
         }
     }
 
-    output.write_all(&result).unwrap();
+    println!("{}", result.capacity());
+    println!("{}", result.len());
+
+ //   output.write_all(&result).unwrap();
 }
