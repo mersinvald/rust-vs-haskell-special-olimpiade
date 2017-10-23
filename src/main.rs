@@ -86,9 +86,11 @@ impl Buffer {
     }
 
     fn extend_or_flush<W: Write>(&mut self, slice: &[u8], out: &mut W) {
-        if unsafe { unlikely(self.len + slice.len() > BUFFER_CAPACITY) } {
+        let flush_predicate = self.len + slice.len() > BUFFER_CAPACITY;
+        if unsafe { unlikely(flush_predicate) } {
             self.flush(out);
         }
+
         let new_len = self.len + slice.len();
         self.buf[self.len..new_len].copy_from_slice(slice);
         self.len = new_len;
