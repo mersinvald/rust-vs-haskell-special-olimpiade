@@ -1,30 +1,43 @@
-
+#![feature(core_intrinsics)]
 use std::io;
 use std::io::{Write, Read};
 
-/* 
-#! /usr/bin/env pypy
+use std::time::Instant;
 
-import sys
+fn clock<R, F: FnMut() -> R>(msg: &str, mut f: F) -> R {
+    // Start timer
+    let start = Instant::now();
+    
+    // Run the measured code
+    let r = f();
 
-w = [l.split(' ', 1) for l in sys.stdin]
-pref = [x[0] for x in w]
-suff = [x[1].rstrip() for x in w]
+    // Pretty print timing
+    let elapsed = start.elapsed();
+    let secs = elapsed.as_secs();
+    let millis = elapsed.subsec_nanos() / 1000_000; 
+    let msg = format!("{}: {}.{}\n", msg, secs, millis);
+    io::stderr().write(msg.as_bytes()).unwrap();
 
-for p in pref:
-    print "\n".join([(p + s) for s in suff])
-*/
+    // Return the runned code return value
+    r
+}
 
 fn main() {
+    // Lock streams to not to spend time on that further
     let stdin = io::stdin();
     let mut input = stdin.lock();
     let stdout = io::stdout();
     let mut output = stdout.lock();
-
+    
+    // Read input from stdn
     let mut buffer = String::new();
-    input.read_to_string(&mut buffer).unwrap();
+    clock("read", || {
+        input.read_to_string(&mut buffer).unwrap();
+    });
 
-    let tokens: Vec<(&str, &str)> = buffer.split("\r\n")
+    // Tokenize preffixes and suffixes
+    let tokens: Vec<(&str, &str)> = clock("tokenize", || {
+        buffer.split("\r\n")
         .map(|line| {
             let mut words = line.split_whitespace();
             (
@@ -32,29 +45,57 @@ fn main() {
                 words.next().unwrap()
             )
         })
-        .collect();
+        .collect()
+    });
 
-    let mut result: Vec<u8> = Vec::with_capacity(
-        tokens.len() * tokens.len() * 5 * 2 // n^2 strings of 5*2 symbols
-      + tokens.len() * tokens.len()         // \n
-    );
+    // Generate and output token combinations
+    clock("main", || {
+        // The on-stack buffer
+        let mut buffer = Buffer::new();
 
-    for &(pref, _) in &tokens {
-        for &(_, suf) in &tokens {
-            // if buffer capacity will be exceeded in this iteration,
-            // flush the buffer
-            if result.capacity() - result.len() < pref.len() + suf.len() + 1 {
-                output.write_all(&result).unwrap();
-                result.clear();
+        for &(pref, _) in &tokens {
+            for &(_, suf) in &tokens {
+                buffer.extend_or_flush(pref.as_bytes(), &mut output);
+                buffer.extend_or_flush(suf.as_bytes(), &mut output);
+                buffer.extend_or_flush(b"\n", &mut output);
             }
+        }
 
-            result.extend(pref.as_bytes());
-            result.extend(suf.as_bytes());
-            result.extend(b"\n");
+        // Flush in case there is some data in buffer
+        buffer.flush(&mut output);
+    });
+}
+
+// 200kb on stack should be OK
+const BUFFER_CAPACITY: usize = 1024 * 200;
+
+struct Buffer {
+    buf: [u8; BUFFER_CAPACITY],
+    len: usize,
+}
+
+// Cheating :D (-30ms)
+use std::intrinsics::unlikely;
+
+impl Buffer {
+    fn new() -> Self {
+        Buffer { 
+            buf: [0; BUFFER_CAPACITY], 
+            len: 0
         }
     }
 
-    if !result.is_empty() {
-        output.write_all(&result).unwrap();
+    fn extend_or_flush<W: Write>(&mut self, slice: &[u8], out: &mut W) {
+        if unsafe { unlikely(self.len + slice.len() > BUFFER_CAPACITY) } {
+            self.flush(out);
+        }
+        let new_len = self.len + slice.len();
+        self.buf[self.len..new_len].copy_from_slice(slice);
+        self.len = new_len;
+    }
+
+    fn flush<W: Write>(&mut self, out: &mut W) {
+        out.write_all(&self.buf[..self.len]).unwrap();
+        self.len = 0;
     }
 }
