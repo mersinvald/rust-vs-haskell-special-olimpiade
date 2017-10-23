@@ -1,4 +1,3 @@
-#![feature(core_intrinsics)]
 use std::io;
 use std::io::{Write, Read};
 
@@ -74,9 +73,6 @@ struct Buffer {
     len: usize,
 }
 
-// Cheating :D (-30ms)
-use std::intrinsics::unlikely;
-
 impl Buffer {
     fn new() -> Self {
         Buffer { 
@@ -87,7 +83,7 @@ impl Buffer {
 
     fn extend_or_flush<W: Write>(&mut self, slice: &[u8], out: &mut W) {
         let flush_predicate = self.len + slice.len() > BUFFER_CAPACITY;
-        if unsafe { unlikely(flush_predicate) } {
+        if flush_predicate {
             self.flush(out);
         }
 
