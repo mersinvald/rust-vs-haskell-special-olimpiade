@@ -1,0 +1,6 @@
+[package]
+name = "rust-vs-haskell"
+version = "0.1.0"
+authors = ["Mike Lubinets <lubinetsm@yandex.ru>"]
+
+[dependencies]
