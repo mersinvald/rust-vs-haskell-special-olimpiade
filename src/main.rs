@@ -25,24 +25,26 @@ fn main() {
         .map(Result::unwrap)
         .collect();
 
+    let tokens: Vec<(&str, &str)> = lines.iter()
+        .map(|line| {
+            let whitespace_idx = line.find(' ').unwrap();
+            let chunks = line.split_at(whitespace_idx);
+            (chunks.0, &chunks.1[1..])
+        })
+        .collect();
+
     let mut result: Vec<u8> = Vec::with_capacity(
         lines.len() * lines.len() * 5 * 2 // n^2 strings of 5*2 symbols
       + lines.len() * lines.len()         // \n
     );
 
-    println!("{}", result.capacity());
-    println!("{}", result.len());
-
-    for pref in lines.iter().map(|line| line.split_at(5).0) {
-        for suf in lines.iter().map(|line| line.split_at(6).1) {
+    for &(pref, _) in &tokens {
+        for &(_, suf) in &tokens {
             result.extend(pref.as_bytes());
             result.extend(suf.as_bytes());
             result.extend(b"\n");
         }
     }
 
-    println!("{}", result.capacity());
-    println!("{}", result.len());
-
- //   output.write_all(&result).unwrap();
+    output.write_all(&result).unwrap();
 }
