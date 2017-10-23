@@ -37,7 +37,7 @@ fn main() {
 
     // Tokenize preffixes and suffixes
     let tokens: Vec<(&str, &str)> = clock("tokenize", || {
-        buffer.split("\r\n")
+        buffer.split("\n")
         .map(|line| {
             let mut words = line.split_whitespace();
             (
