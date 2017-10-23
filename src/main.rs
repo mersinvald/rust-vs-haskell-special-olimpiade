@@ -1,6 +1,6 @@
 
 use std::io;
-use std::io::{BufRead, Write};
+use std::io::{Write, Read};
 
 /* 
 #! /usr/bin/env pypy
@@ -17,15 +17,14 @@ for p in pref:
 
 fn main() {
     let stdin = io::stdin();
-    let input = stdin.lock();
+    let mut input = stdin.lock();
     let stdout = io::stdout();
     let mut output = stdout.lock();
 
-    let lines: Vec<String> = input.lines()
-        .map(Result::unwrap)
-        .collect();
+    let mut buffer = String::new();
+    input.read_to_string(&mut buffer).unwrap();
 
-    let tokens: Vec<(&str, &str)> = lines.iter()
+    let tokens: Vec<(&str, &str)> = buffer.split("\r\n")
         .map(|line| {
             let mut words = line.split_whitespace();
             (
@@ -36,17 +35,26 @@ fn main() {
         .collect();
 
     let mut result: Vec<u8> = Vec::with_capacity(
-        lines.len() * lines.len() * 5 * 2 // n^2 strings of 5*2 symbols
-      + lines.len() * lines.len()         // \n
+        tokens.len() * tokens.len() * 5 * 2 // n^2 strings of 5*2 symbols
+      + tokens.len() * tokens.len()         // \n
     );
 
     for &(pref, _) in &tokens {
         for &(_, suf) in &tokens {
+            // if buffer capacity will be exceeded in this iteration,
+            // flush the buffer
+            if result.capacity() - result.len() < pref.len() + suf.len() + 1 {
+                output.write_all(&result).unwrap();
+                result.clear();
+            }
+
             result.extend(pref.as_bytes());
             result.extend(suf.as_bytes());
             result.extend(b"\n");
         }
     }
 
-    output.write_all(&result).unwrap();
+    if !result.is_empty() {
+        output.write_all(&result).unwrap();
+    }
 }
