@@ -1,6 +1,6 @@
 
 use std::io;
-use std::io::{BufRead, BufWriter, Read, Write};
+use std::io::{BufRead, Write};
 
 /* 
 #! /usr/bin/env pypy
