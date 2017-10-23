@@ -27,9 +27,11 @@ fn main() {
 
     let tokens: Vec<(&str, &str)> = lines.iter()
         .map(|line| {
-            let whitespace_idx = line.find(' ').unwrap();
-            let chunks = line.split_at(whitespace_idx);
-            (chunks.0, &chunks.1[1..])
+            let mut words = line.split_whitespace();
+            (
+                words.next().unwrap(),
+                words.next().unwrap()
+            )
         })
         .collect();
 
